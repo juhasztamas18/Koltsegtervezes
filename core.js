@@ -11,6 +11,14 @@ let koltsegController = (function() {
         this.id = id;
         this.description = description;
         this.value = value;  
+    };  
+
+    let calculateTotal = function(type) {
+        let sum=0;
+        adatok.mindenAdat[type].forEach(function(cur){
+            sum += cur.value;
+        });
+        adatok.totals[type] = sum;
     };
 
     let adatok = {
@@ -21,7 +29,9 @@ let koltsegController = (function() {
         totals: {
             exp: 0,
             inc: 0
-        }
+        }, 
+        budget:0,
+        percentage:-1,
     }
 
     return {
@@ -48,7 +58,30 @@ let koltsegController = (function() {
 
         testing: function() {
             console.log(adatok);
-        }
+        },
+
+
+        calculateBudget: function() {
+            //kiszámolni a össz inc és exp
+            calculateTotal('exp');
+            calculateTotal('inc');
+
+            //Kiszámolni a költséget: inc-exp
+            adatok.budget = adatok.totals.inc - adatok.totals.exp;
+            
+            //Kiszámolni a százalékot
+            if(adatok.totals.inc>0) {
+                adatok.percentage = Math.round((adatok.totals.exp / adatok.totals.inc)*100);
+            } else adatok.percentage = -1;
+        },
+        getBudget: function(){
+            return {
+                budget: adatok.budget,
+                totalInc : adatok.totals.inc,
+                totalExp: adatok.totals.exp,
+                percentage: adatok.percentage,
+            }
+        },
     };
 
   
@@ -65,6 +98,11 @@ let uiController = (function(){
         inputBtn : '.add__btn',
         incomeContainer: '.income__list',
         expensContainer: '.expenses__list',
+        budgetLabel: '.budget__value',
+        incLabel: '.budget__income--value',
+        expLabel: '.budget__expenses--value',
+        percentage : '.budget__expenses--percentage',
+
     };
 
 
@@ -106,6 +144,16 @@ let uiController = (function(){
 
         },
 
+        displayBudget : function(obj) {
+            document.querySelector(DOMstrings.budgetLabel).textContent = obj.budget;
+            document.querySelector(DOMstrings.incLabel).textContent = obj.totalInc;
+            document.querySelector(DOMstrings.expLabel).textContent = obj.totalExp;
+            if(obj.percentage>0) {
+                document.querySelector(DOMstrings.percentage).textContent = obj.percentage + '%';
+            } else document.querySelector(DOMstrings.percentage).textContent = '---';
+
+        },
+
         clearFilds : function(){
             let filds,fieldsArray;
             filds = document.querySelectorAll(DOMstrings.desc + ', '+DOMstrings.value);
@@ -121,6 +169,15 @@ let uiController = (function(){
 
  //App modul 
     let controller = (function(koltCtrl,uiCtrl){
+
+    let updateBudget = function() {
+
+        koltsegController.calculateBudget();
+
+        let budget = koltsegController.getBudget();
+
+        uiController.displayBudget(budget);
+    };
 
     let setEvelisteners = function () {
         let DOM = uiCtrl.getDOMstrings();
@@ -146,7 +203,9 @@ let uiController = (function(){
             uiCtrl.addListItem(newItem,input.type);
             uiCtrl.clearFilds();
         //4. Kiszámolni az összeget
-        //5. Kiszámolni az összeget
+            updateBudget();
+        //5. Kiirnii az összeget
+        
      }
      
      
@@ -155,6 +214,12 @@ let uiController = (function(){
         init:function(){  
             setEvelisteners();
             console.log('Application has started!');
+            uiController.displayBudget({
+                budget:0,
+                totalInc :0,
+                totalExp: 0,
+                percentage: -1,
+            });
         }
     };
 
